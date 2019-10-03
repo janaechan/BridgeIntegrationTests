@@ -21,6 +21,7 @@ import static org.sagebionetworks.bridge.sdk.integration.TestSurvey.STRING_ID;
 import static org.sagebionetworks.bridge.sdk.integration.TestSurvey.TIME_ID;
 import static org.sagebionetworks.bridge.sdk.integration.TestSurvey.WEIGHT_ID;
 import static org.sagebionetworks.bridge.sdk.integration.TestSurvey.YEARMONTH_ID;
+import static org.sagebionetworks.bridge.sdk.integration.TestSurvey.IDENTIFIER_PREFIX;
 import static org.sagebionetworks.bridge.util.IntegTestUtils.SHARED_STUDY_ID;
 import static org.sagebionetworks.bridge.sdk.integration.TestSurvey.POSTALCODE_ID;
 
@@ -357,6 +358,36 @@ public class SurveyTest {
         assertNotNull(thrownEx);
     }
 
+    @Test
+    public void testPermanentDeleteWithSharedModuleByIdentifier() throws Exception {
+        // create test survey and test shared module
+        String moduleId = "integ-test-module-delete" + RandomStringUtils.randomAlphabetic(4);;
+
+        Survey survey = new Survey().name(SURVEY_NAME).identifier(surveyId);
+        GuidCreatedOnVersionHolder retSurvey = sharedSurveysApi.createSurvey(survey).execute().body();
+
+        SharedModuleMetadata metadataToCreate = new SharedModuleMetadata().id(moduleId).version(0)
+                .name("Integ Test Schema").surveyCreatedOn(retSurvey.getCreatedOn().toString()).surveyGuid(retSurvey.getGuid());
+        sharedDeveloperModulesApi.createMetadata(metadataToCreate).execute()
+                .body();
+
+        // execute delete
+        Exception thrownEx = null;
+        try {
+            adminsApi.adminChangeStudy(Tests.SHARED_SIGNIN).execute();
+            adminsApi.deleteSurvey(IDENTIFIER_PREFIX+"surveyId", retSurvey.getCreatedOn(), true).execute();
+            fail("expected exception");
+        } catch (BadRequestException e) {
+            thrownEx = e;
+        } finally {
+            // finally delete shared module and uploaded schema
+            adminsApi.deleteMetadataByIdAllVersions(moduleId, true).execute();
+            adminsApi.deleteSurvey(IDENTIFIER_PREFIX+"surveyId", retSurvey.getCreatedOn(), true).execute();
+            adminsApi.adminChangeStudy(Tests.API_SIGNIN).execute();
+        }
+        assertNotNull(thrownEx);
+    }
+    
     @Test
     public void testVirtualDeleteWithSharedModule() throws Exception {
         // create test survey and test shared module

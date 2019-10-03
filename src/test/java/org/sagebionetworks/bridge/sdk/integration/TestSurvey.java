@@ -77,6 +77,7 @@ public class TestSurvey {
     public static final String WEIGHT_ID = "weight";
     public static final String YEARMONTH_ID = "yearmonth";
     public static final String POSTALCODE_ID = "postalcode";
+    public static final String IDENTIFIER_PREFIX = "identifier:";
 
     private static Image image(String url, int width, int height) {
         Image image = new Image();
